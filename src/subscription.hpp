@@ -190,7 +190,6 @@ struct ticker_data {
 
 class TickerSubscriptionHandler : public SubscriptionHandler {
   private:
-    // std::vector<std::string> m_ids;
     std::string m_id;
 
   public:
