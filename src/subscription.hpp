@@ -1,107 +1,118 @@
 #ifndef _SUBSCRIPTION_HPP_
 #define _SUBSCRIPTION_HPP_
 
-
-#include <websocketpp/config/asio_client.hpp>
 #include <websocketpp/client.hpp>
+#include <websocketpp/config/asio_client.hpp>
 
-#include <websocketpp/common/thread.hpp>
 #include <websocketpp/common/memory.hpp>
+#include <websocketpp/common/thread.hpp>
 
-#include <rapidjson/document.h>
 #include <iostream>
+#include <rapidjson/document.h>
 #include <string>
 #include <vector>
 
 namespace deg {
 
 typedef websocketpp::client<websocketpp::config::asio_tls_client> client;
-typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
+typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context>
+    context_ptr;
 
+using websocketpp::lib::bind;
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
 
-context_ptr on_tls_init(const char * hostname, websocketpp::connection_hdl);
+context_ptr on_tls_init(const char* hostname, websocketpp::connection_hdl);
 
-template<typename handler_t>
-class Subscription{
-    private:
-        std::string m_hostname;
-        std::string m_uri;
-        client m_endpoint;
-        websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
-        client::connection_ptr m_conn;
-        bool m_connection_launched = false;
-        handler_t m_handler;
+template <typename handler_t> class Subscription {
+  private:
+    std::string m_hostname;
+    std::string m_uri;
+    client m_endpoint;
+    websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
+    client::connection_ptr m_conn;
+    bool m_connection_launched = false;
+    handler_t m_handler;
 
-        void init(){
-            m_endpoint.set_access_channels(websocketpp::log::alevel::all);
-            m_endpoint.clear_access_channels(websocketpp::log::alevel::frame_payload);
-            m_endpoint.set_error_channels(websocketpp::log::elevel::all);
+    void init() {
+        m_endpoint.set_access_channels(websocketpp::log::alevel::all);
+        m_endpoint.clear_access_channels(
+            websocketpp::log::alevel::frame_payload);
+        m_endpoint.set_error_channels(websocketpp::log::elevel::all);
 
-            m_endpoint.init_asio();
-            m_endpoint.start_perpetual();
+        m_endpoint.init_asio();
+        m_endpoint.start_perpetual();
 
-            m_endpoint.set_tls_init_handler(bind(&on_tls_init, m_hostname.c_str(), deg::_1));
+        m_endpoint.set_tls_init_handler(
+            bind(&on_tls_init, m_hostname.c_str(), deg::_1));
 
-            m_endpoint.set_message_handler(bind(&handler_t::_on_message,&m_handler,deg::_1,deg::_2));
-            m_endpoint.set_open_handler(bind(&handler_t::_on_open,&m_handler, deg::_1, &m_endpoint));
-            m_endpoint.set_fail_handler(bind(&handler_t::on_fail,&m_handler, deg::_1));
-            m_endpoint.set_close_handler(bind(&handler_t::on_close,&m_handler, deg::_1));
+        m_endpoint.set_message_handler(
+            bind(&handler_t::_on_message, &m_handler, deg::_1, deg::_2));
+        m_endpoint.set_open_handler(
+            bind(&handler_t::_on_open, &m_handler, deg::_1, &m_endpoint));
+        m_endpoint.set_fail_handler(
+            bind(&handler_t::on_fail, &m_handler, deg::_1));
+        m_endpoint.set_close_handler(
+            bind(&handler_t::on_close, &m_handler, deg::_1));
 
-            m_thread = websocketpp::lib::make_shared<websocketpp::lib::thread>(&client::run, &m_endpoint);
+        m_thread = websocketpp::lib::make_shared<websocketpp::lib::thread>(
+            &client::run, &m_endpoint);
 
-            connect();
-        }
-
-    public:
-        Subscription(std::string hostname) : m_hostname(hostname), m_uri("wss://" + m_hostname){
-            init();
-        }
-
-        template<typename... Args>
-        Subscription(std::string hostname, Args... args) : m_hostname(hostname), m_uri("wss://" + m_hostname), m_handler(args...){
-            init();
-        }
-
-        ~Subscription(){
-            m_endpoint.stop_perpetual();
-            if (m_connection_launched){
-                websocketpp::lib::error_code ec;
-                m_endpoint.close(m_conn->get_handle(),websocketpp::close::status::going_away,"",ec);
-                if (ec) {
-                    std::cout << "> Error closing connection: "
-                            << ec.message() << std::endl;
-                }
-            }
-            m_thread->join();
-        }
-
-        int connect(){
-            websocketpp::lib::error_code ec;
-            m_conn = m_endpoint.get_connection(m_uri, ec);
-
-            if (ec) {
-                std::cout << "> Connect initialization error: " << ec.message() << std::endl;
-                return -1;
-            }
-
-            m_endpoint.connect(m_conn);
-
-            m_connection_launched = true;
-
-            return 0;
-        }
-};
-
-class SubscriptionHandler{
-    public:
-    void _on_open(websocketpp::connection_hdl hdl, client* c) {
-        this->on_open(hdl,c);
+        connect();
     }
 
-    virtual void on_open(websocketpp::connection_hdl hdl, client* c){
+  public:
+    Subscription(std::string hostname)
+        : m_hostname(hostname), m_uri("wss://" + m_hostname) {
+        init();
+    }
+
+    template <typename... Args>
+    Subscription(std::string hostname, Args... args)
+        : m_hostname(hostname), m_uri("wss://" + m_hostname),
+          m_handler(args...) {
+        init();
+    }
+
+    ~Subscription() {
+        m_endpoint.stop_perpetual();
+        if (m_connection_launched) {
+            websocketpp::lib::error_code ec;
+            m_endpoint.close(m_conn->get_handle(),
+                             websocketpp::close::status::going_away, "", ec);
+            if (ec) {
+                std::cout << "> Error closing connection: " << ec.message()
+                          << std::endl;
+            }
+        }
+        m_thread->join();
+    }
+
+    int connect() {
+        websocketpp::lib::error_code ec;
+        m_conn = m_endpoint.get_connection(m_uri, ec);
+
+        if (ec) {
+            std::cout << "> Connect initialization error: " << ec.message()
+                      << std::endl;
+            return -1;
+        }
+
+        m_endpoint.connect(m_conn);
+
+        m_connection_launched = true;
+
+        return 0;
+    }
+};
+
+class SubscriptionHandler {
+  public:
+    void _on_open(websocketpp::connection_hdl hdl, client* c) {
+        this->on_open(hdl, c);
+    }
+
+    virtual void on_open(websocketpp::connection_hdl hdl, client* c) {
         std::cout << "WebSocket connection opened!" << std::endl;
     }
 
@@ -113,16 +124,18 @@ class SubscriptionHandler{
         std::cout << "WebSocket connection closed!" << std::endl;
     }
 
-    void _on_message(websocketpp::connection_hdl hdl, deg::client::message_ptr msg){
+    void _on_message(websocketpp::connection_hdl hdl,
+                     deg::client::message_ptr msg) {
         rapidjson::Document document;
         document.Parse(msg->get_payload().c_str());
         this->on_message(hdl, document);
     }
 
-    virtual void on_message(websocketpp::connection_hdl, const rapidjson::Document& document) = 0;
+    virtual void on_message(websocketpp::connection_hdl,
+                            const rapidjson::Document& document) = 0;
 };
 
-struct ticker_data{
+struct ticker_data {
     std::string product_id;
     double price;
     double open_24h;
@@ -136,10 +149,10 @@ struct ticker_data{
     double best_ask_size;
     bool buy;
     std::string time;
-    //uint32_t trade_id;
+    // uint32_t trade_id;
     double last_size;
 
-    ticker_data(const rapidjson::Document& document){
+    ticker_data(const rapidjson::Document& document) {
         product_id = document["product_id"].GetString();
         price = std::stof(document["price"].GetString());
         open_24h = std::stof(document["open_24h"].GetString());
@@ -151,13 +164,13 @@ struct ticker_data{
         best_bid_size = std::stof(document["best_bid_size"].GetString());
         best_ask = std::stof(document["best_ask"].GetString());
         best_ask_size = std::stof(document["best_ask_size"].GetString());
-        buy = strcmp(document["side"].GetString(),"buy") == 0;
+        buy = strcmp(document["side"].GetString(), "buy") == 0;
         time = document["time"].GetString();
-        //trade_id = document["trade_id"].GetInt64();
+        // trade_id = document["trade_id"].GetInt64();
         last_size = std::stof(document["last_size"].GetString());
     }
 
-    void print() const{
+    void print() const {
         std::cout << "ID: " << product_id << "\n";
         std::cout << "   PRICE: " << price << "\n";
         std::cout << "   OPEN24H: " << open_24h << "\n";
@@ -175,31 +188,33 @@ struct ticker_data{
     }
 };
 
-class TickerSubscriptionHandler : public SubscriptionHandler{
-    private:
-       // std::vector<std::string> m_ids;
-       std::string m_id;
-    public:
-    TickerSubscriptionHandler(std::string id) : m_id(id){
+class TickerSubscriptionHandler : public SubscriptionHandler {
+  private:
+    // std::vector<std::string> m_ids;
+    std::string m_id;
 
-    }
+  public:
+    TickerSubscriptionHandler(std::string id) : m_id(id) {}
 
-    void on_open(websocketpp::connection_hdl hdl, client* c)override{
+    void on_open(websocketpp::connection_hdl hdl, client* c) override {
         std::cout << "WebSocket ticker connection opened!" << std::endl;
         websocketpp::lib::error_code ec;
 
         client::connection_ptr con = c->get_con_from_hdl(hdl, ec);
         if (ec) {
-            std::cout << "Failed to get connection pointer: " << ec.message() << std::endl;
+            std::cout << "Failed to get connection pointer: " << ec.message()
+                      << std::endl;
             return;
         }
-        std::string payload = "{\"type\":\"subscribe\", \"product_ids\":[\"" + m_id + "\"], \"channels\":[\"ticker\"]}";
+        std::string payload = "{\"type\":\"subscribe\", \"product_ids\":[\"" +
+                              m_id + "\"], \"channels\":[\"ticker\"]}";
         std::cout << "payload : " << payload << std::endl;
         c->send(con, payload, websocketpp::frame::opcode::text);
     }
 
-    void on_message(websocketpp::connection_hdl, const rapidjson::Document& document) override{
-        if (document["type"] == "ticker"){
+    void on_message(websocketpp::connection_hdl,
+                    const rapidjson::Document& document) override {
+        if (document["type"] == "ticker") {
             ticker_data data(document);
             this->on_ticker(data);
         }
