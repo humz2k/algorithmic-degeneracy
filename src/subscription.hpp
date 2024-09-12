@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+#include "date/date.h"
+
 namespace deg {
 
 typedef websocketpp::client<websocketpp::config::asio_tls_client> client;
@@ -151,6 +153,7 @@ struct ticker_data {
     std::string time;
     // uint32_t trade_id;
     double last_size;
+    std::chrono::system_clock::time_point tp;
 
     ticker_data(const rapidjson::Document& document) {
         product_id = document["product_id"].GetString();
@@ -168,6 +171,10 @@ struct ticker_data {
         time = document["time"].GetString();
         // trade_id = document["trade_id"].GetInt64();
         last_size = std::stof(document["last_size"].GetString());
+        //std::tm tm = {};
+        std::istringstream in(time);
+        in >> date::parse("%Y-%m-%dT%T",tp);
+        //ss >> std::get_time(&tm, "%Y:%m:%dT%H:%M:%S.")
     }
 
     void print() const {

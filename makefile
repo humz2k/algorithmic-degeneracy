@@ -11,7 +11,7 @@ INCLUDE_FLAGS ?= -I$(SOURCE_DIR) -I/opt/homebrew/Cellar/openssl@3/3.3.2/include 
 
 FLAGS ?= -pthread -L/opt/homebrew/Cellar/boost/1.86.0/lib -L/opt/homebrew/Cellar/openssl@3/3.3.2/lib -lssl -lcrypto -lboost_system
 
-OPT ?= -g -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fno-inline
+OPT ?= -O3 #-g -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fno-inline
 
 #CXX := clang++
 
