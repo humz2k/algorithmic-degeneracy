@@ -1,3 +1,3 @@
-# algorithmic-degeneracy
+# trading-bot
 
 learning websockets and stuff, wip, dont use
