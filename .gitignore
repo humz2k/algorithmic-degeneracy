@@ -37,7 +37,4 @@ build
 driver
 *.csv
 
-apikey.txt
-apipass.txt
-apisecret.txt
 api*.txt
