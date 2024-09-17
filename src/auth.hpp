@@ -1,52 +1,55 @@
 #ifndef _AUTH_HPP_
 #define _AUTH_HPP_
 
-#include <openssl/sha.h>
-#include <openssl/hmac.h>
-
-#include <string>
-#include <string_view>
-#include <array>
 #include <iostream>
-#include <fstream>
+#include <jwt-cpp/jwt.h>
+#include <openssl/ec.h>
+#include <openssl/evp.h>
+#include <openssl/pem.h>
+#include <openssl/rand.h>
 #include <sstream>
-#include <vector>
-#include <websocketpp/base64/base64.hpp>
+#include <string>
 
-namespace deg{
-namespace auth{
-
-typedef unsigned char BYTE;
+namespace deg {
+namespace auth {
 
 std::string read_str_from_file(std::string filename);
 
-std::string calc_hmac(std::string_view decodedKey, std::string_view msg);
+class JWTCreator {
+  private:
+    std::string m_key_name;
+    std::string m_key_secret;
 
-class Signer{
-    private:
-        std::string m_secret;
-        std::string m_passphrase;
-        std::string m_key;
+  public:
+    JWTCreator(std::string key_name_path = "apikeyname.txt",
+               std::string key_secret_path = "apiprivkey.txt")
+        : m_key_name(read_str_from_file(key_name_path)),
+          m_key_secret(read_str_from_file(key_secret_path)) {}
 
-    public:
-        Signer(std::string apisecret_path = "apisecret.txt", std::string apipassphrase_path = "apipass.txt", std::string apikey_path = "apikey.txt"){
-            auto secret = read_str_from_file(apisecret_path);
-            m_secret = websocketpp::base64_decode(secret);
-            m_passphrase = read_str_from_file(apipassphrase_path);
-            m_key = read_str_from_file(apikey_path);
-        }
+    std::string create(std::string request_method, std::string request_path,
+                       std::string url = "api.coinbase.com") {
+        std::string uri = request_method + " " + url + request_path;
 
-        std::string sign(std::string message){
-            return websocketpp::base64_encode(calc_hmac(m_secret,message));
-        }
+        // Generate a random nonce
+        unsigned char nonce_raw[16];
+        RAND_bytes(nonce_raw, sizeof(nonce_raw));
+        std::string nonce(reinterpret_cast<char*>(nonce_raw),
+                          sizeof(nonce_raw));
 
-        const std::string& passphrase(){
-            return m_passphrase;
-        }
+        // Create JWT token
+        auto token = jwt::create()
+                         .set_subject(m_key_name)
+                         .set_issuer("cdp")
+                         .set_not_before(std::chrono::system_clock::now())
+                         .set_expires_at(std::chrono::system_clock::now() +
+                                         std::chrono::seconds{120})
+                         .set_payload_claim("uri", jwt::claim(uri))
+                         .set_header_claim("kid", jwt::claim(m_key_name))
+                         .set_header_claim("nonce", jwt::claim(nonce))
+                         .sign(jwt::algorithm::es256(m_key_name, m_key_secret));
 
-        const std::string& key(){
-            return m_key;
-        }
+        return token;
+    };
 };
 
 } // namespace auth

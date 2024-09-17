@@ -171,10 +171,10 @@ struct ticker_data {
         time = document["time"].GetString();
         // trade_id = document["trade_id"].GetInt64();
         last_size = std::stof(document["last_size"].GetString());
-        //std::tm tm = {};
+        // std::tm tm = {};
         std::istringstream in(time);
-        in >> date::parse("%Y-%m-%dT%T",tp);
-        //ss >> std::get_time(&tm, "%Y:%m:%dT%H:%M:%S.")
+        in >> date::parse("%Y-%m-%dT%T", tp);
+        // ss >> std::get_time(&tm, "%Y:%m:%dT%H:%M:%S.")
     }
 
     void print() const {

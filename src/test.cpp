@@ -1,19 +1,20 @@
+#include "auth.hpp"
+#include "circular_buffer.hpp"
+#include "restapi.hpp"
 #include "subscription.hpp"
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <rapidjson/document.h>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
-#include "restapi.hpp"
-#include "circular_buffer.hpp"
-#include "auth.hpp"
 
 std::ofstream csv_data;
 
 class Handler : public deg::TickerSubscriptionHandler {
   private:
-    deg::circular_buffer<double,5> m_price_moving_avg;
-    deg::circular_buffer<double,20> m_price_moving_avg2;
+    deg::circular_buffer<double, 5> m_price_moving_avg;
+    deg::circular_buffer<double, 20> m_price_moving_avg2;
+
   public:
     Handler() : deg::TickerSubscriptionHandler("DOGE-USD") {}
     void on_ticker(const deg::ticker_data& data) override {
@@ -26,36 +27,24 @@ class Handler : public deg::TickerSubscriptionHandler {
         auto time_now = std::chrono::system_clock::now();
         std::chrono::nanoseconds time_diff = time_now - data.tp;
 
-        csv_data
-        << avg  << "," << data.price
-        << "," << diff
-        << "," << rel_diff
-        << "," << spread
-        << "," << lerp
-        << "," << data.tp
-        << "," << time_now
-        << "," << time_diff.count()
-        << "," << data.best_bid
-        << "," << data.best_ask
-        << "," << m_price_moving_avg2.average()
-        << "\n";
+        csv_data << avg << "," << data.price << "," << diff << "," << rel_diff
+                 << "," << spread << "," << lerp << "," << data.tp << ","
+                 << time_now << "," << time_diff.count() << "," << data.best_bid
+                 << "," << data.best_ask << "," << m_price_moving_avg2.average()
+                 << "\n";
 
         std::cout << "#tick:\n"
-        << "   price moving avg: " << avg
-        << "\n   diff = " << diff
-        << "\n   rel_diff = " << rel_diff
-        << "\n   spread = " << spread
-        << "\n   lerp = " << lerp
-        << "\n   trade_time = " << data.tp
-        << "\n   time_now = " << time_now
-        << "\n   time_diff = " << time_diff.count()
-        << std::endl;
+                  << "   price moving avg: " << avg << "\n   diff = " << diff
+                  << "\n   rel_diff = " << rel_diff
+                  << "\n   spread = " << spread << "\n   lerp = " << lerp
+                  << "\n   trade_time = " << data.tp
+                  << "\n   time_now = " << time_now
+                  << "\n   time_diff = " << time_diff.count() << std::endl;
 
-        //data.print();
+        // data.print();
 
         m_price_moving_avg.insert(data.price);
         m_price_moving_avg2.insert(data.price);
-
     }
 };
 
@@ -76,8 +65,10 @@ int main() {
     std::cout << "avg_rtt = " << trade_api.avg_rtt() << std::endl;
 
     /*csv_data.open ("doge_data2.csv");
-    csv_data << "mvavg,price,mvavgdiff,relmvavgdiff,spread,lerp,timetrade,timenow,latency,bid,ask,longermvavgprice\n";
-    deg::Subscription<Handler> subscription("ws-feed-public.sandbox.exchange.coinbase.com ");
+    csv_data <<
+    "mvavg,price,mvavgdiff,relmvavgdiff,spread,lerp,timetrade,timenow,latency,bid,ask,longermvavgprice\n";
+    deg::Subscription<Handler>
+    subscription("ws-feed-public.sandbox.exchange.coinbase.com ");
 
     while (true) {
         std::string command;
