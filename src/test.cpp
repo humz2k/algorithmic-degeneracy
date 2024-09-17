@@ -4,34 +4,16 @@
 #include <rapidjson/document.h>
 #include <websocketpp/client.hpp>
 #include <websocketpp/config/asio_client.hpp>
+#include "restapi.hpp"
+#include "circular_buffer.hpp"
+#include "auth.hpp"
 
 std::ofstream csv_data;
 
-
-template<typename T, int n>
-class circular_buffer{
-    private:
-        T m_buff[n] = {0};
-        int m_count = 0;
-    public:
-        void insert(T val){
-            m_buff[m_count] = val;
-            m_count = (m_count + 1)%n;
-        }
-
-        T average(){
-            T sum = 0;
-            for (int i = 0; i < n; i++){
-                sum += m_buff[i];
-            }
-            return sum / (T)n;
-        }
-};
-
 class Handler : public deg::TickerSubscriptionHandler {
   private:
-    circular_buffer<double,5> m_price_moving_avg;
-    circular_buffer<double,20> m_price_moving_avg2;
+    deg::circular_buffer<double,5> m_price_moving_avg;
+    deg::circular_buffer<double,20> m_price_moving_avg2;
   public:
     Handler() : deg::TickerSubscriptionHandler("DOGE-USD") {}
     void on_ticker(const deg::ticker_data& data) override {
@@ -78,8 +60,22 @@ class Handler : public deg::TickerSubscriptionHandler {
 };
 
 int main() {
-    using namespace std::chrono_literals;
-    csv_data.open ("doge_data2.csv");
+    deg::rest::CurlManager curl_manager;
+
+    deg::rest::GetRequest time_req("/time");
+    std::cout << "yeet: " << time_req.go() << std::endl;
+
+    deg::rest::TradeAPI trade_api;
+
+    std::cout << trade_api.get_server_time().count() << std::endl;
+    std::cout << "last_rtt = " << trade_api.last_rtt() << std::endl;
+    std::cout << "avg_rtt = " << trade_api.avg_rtt() << std::endl;
+
+    trade_api.get_orders();
+    std::cout << "last_rtt = " << trade_api.last_rtt() << std::endl;
+    std::cout << "avg_rtt = " << trade_api.avg_rtt() << std::endl;
+
+    /*csv_data.open ("doge_data2.csv");
     csv_data << "mvavg,price,mvavgdiff,relmvavgdiff,spread,lerp,timetrade,timenow,latency,bid,ask,longermvavgprice\n";
     deg::Subscription<Handler> subscription("ws-feed-public.sandbox.exchange.coinbase.com ");
 
@@ -91,5 +87,7 @@ int main() {
         }
     }
 
-    csv_data.close();
+    csv_data.close();*/
+
+    return 0;
 }

@@ -7,9 +7,9 @@ OBJECTS := $(OBJECTS:%.c=$(BUILD_DIR)/%.o)
 
 HEADERS := $(shell find $(SOURCE_DIR) -name '*.hpp')
 
-INCLUDE_FLAGS ?= -I$(SOURCE_DIR) -I/opt/homebrew/Cellar/openssl@3/3.3.2/include -I/opt/homebrew/Cellar/boost/1.86.0/include
+INCLUDE_FLAGS ?= -I$(SOURCE_DIR) -I/opt/homebrew/Cellar/openssl@3/3.3.2/include -I/opt/homebrew/Cellar/boost/1.86.0/include -I/opt/homebrew/opt/curl/include
 
-FLAGS ?= -pthread -L/opt/homebrew/Cellar/boost/1.86.0/lib -L/opt/homebrew/Cellar/openssl@3/3.3.2/lib -lssl -lcrypto -lboost_system
+FLAGS ?= -pthread -L/opt/homebrew/opt/curl/lib -L/opt/homebrew/Cellar/boost/1.86.0/lib -L/opt/homebrew/Cellar/openssl@3/3.3.2/lib -lssl -lcrypto -lboost_system -lcurl
 
 OPT ?= -O3 #-g -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fno-inline
 
