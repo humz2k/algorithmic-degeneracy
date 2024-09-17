@@ -4,9 +4,6 @@
 #include "subscription.hpp"
 #include <fstream>
 #include <iostream>
-#include <rapidjson/document.h>
-#include <websocketpp/client.hpp>
-#include <websocketpp/config/asio_client.hpp>
 
 std::ofstream csv_data;
 
