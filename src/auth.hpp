@@ -21,10 +21,12 @@ class JWTCreator {
     std::string m_key_secret;
 
   public:
-    JWTCreator(std::string key_name_path = "apikeyname.txt",
-               std::string key_secret_path = "apiprivkey.txt")
-        : m_key_name(read_str_from_file(key_name_path)),
-          m_key_secret(read_str_from_file(key_secret_path)) {}
+    JWTCreator()
+        : m_key_name(read_str_from_file("apikeyname.txt")),
+          m_key_secret(read_str_from_file("apiprivkey.txt")) {}
+
+    JWTCreator(std::string key_name, std::string key_secret)
+        : m_key_name(key_name), m_key_secret(key_secret) {}
 
     std::string create(std::string request_method, std::string request_path,
                        std::string url = "api.coinbase.com") {
@@ -44,6 +46,27 @@ class JWTCreator {
                          .set_expires_at(std::chrono::system_clock::now() +
                                          std::chrono::seconds{120})
                          .set_payload_claim("uri", jwt::claim(uri))
+                         .set_header_claim("kid", jwt::claim(m_key_name))
+                         .set_header_claim("nonce", jwt::claim(nonce))
+                         .sign(jwt::algorithm::es256(m_key_name, m_key_secret));
+
+        return token;
+    };
+
+    std::string create() {
+        // Generate a random nonce
+        unsigned char nonce_raw[16];
+        RAND_bytes(nonce_raw, sizeof(nonce_raw));
+        std::string nonce(reinterpret_cast<char*>(nonce_raw),
+                          sizeof(nonce_raw));
+
+        // Create JWT token
+        auto token = jwt::create()
+                         .set_subject(m_key_name)
+                         .set_issuer("cdp")
+                         .set_not_before(std::chrono::system_clock::now())
+                         .set_expires_at(std::chrono::system_clock::now() +
+                                         std::chrono::seconds{120})
                          .set_header_claim("kid", jwt::claim(m_key_name))
                          .set_header_claim("nonce", jwt::claim(nonce))
                          .sign(jwt::algorithm::es256(m_key_name, m_key_secret));

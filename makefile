@@ -13,7 +13,7 @@ FLAGS ?= -pthread -L/opt/homebrew/opt/curl/lib -L/opt/homebrew/Cellar/boost/1.86
 
 OPT ?= -O3 #-g -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fno-inline
 
-#CXX := clang++
+#CXX := g++-13
 
 main: driver
 .PHONY: main

@@ -9,8 +9,12 @@
 
 #include <iostream>
 #include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 #include <string>
 #include <vector>
+
+#include "auth.hpp"
 
 #include "date/date.h"
 
@@ -129,7 +133,9 @@ class SubscriptionHandler {
     void _on_message(websocketpp::connection_hdl hdl,
                      deg::client::message_ptr msg) {
         rapidjson::Document document;
-        document.Parse(msg->get_payload().c_str());
+        std::string payload = msg->get_payload();
+        std::cout << "recieved: " << payload << std::endl;
+        document.Parse(payload.c_str());
         this->on_message(hdl, document);
     }
 
@@ -213,20 +219,59 @@ class TickerSubscriptionHandler : public SubscriptionHandler {
             return;
         }
         std::string payload = "{\"type\":\"subscribe\", \"product_ids\":[\"" +
-                              m_id + "\"], \"channels\":[\"ticker\"]}";
+                              m_id +
+                              "\"], \"channel\":\"ticker\"}";
         std::cout << "payload : " << payload << std::endl;
         c->send(con, payload, websocketpp::frame::opcode::text);
     }
 
     void on_message(websocketpp::connection_hdl,
                     const rapidjson::Document& document) override {
-        if (document["type"] == "ticker") {
-            ticker_data data(document);
-            this->on_ticker(data);
+        if (document["channel"] == "ticker") {
+            //ticker_data data(document);
+            //this->on_ticker(data);
         }
     }
 
     virtual void on_ticker(const ticker_data& data) = 0;
+};
+
+class UserSubscriptionHandler : public SubscriptionHandler {
+  private:
+    std::string m_id;
+    deg::auth::JWTCreator m_jwt;
+
+  public:
+    UserSubscriptionHandler(std::string id) : m_id(id) {}
+
+    void on_open(websocketpp::connection_hdl hdl, client* c) override {
+        std::cout << "WebSocket ticker connection opened!" << std::endl;
+        websocketpp::lib::error_code ec;
+
+        client::connection_ptr con = c->get_con_from_hdl(hdl, ec);
+        if (ec) {
+            std::cout << "Failed to get connection pointer: " << ec.message()
+                      << std::endl;
+            return;
+        }
+        std::string payload =
+            "{\"type\":\"subscribe\",\"channel\":\"user\",\"product_ids\":[\"" +
+            m_id + "\"],\"jwt\":\"" + m_jwt.create() + "\"}";
+        std::cout << "payload : " << payload << std::endl;
+        c->send(con, payload, websocketpp::frame::opcode::text);
+    }
+
+    void on_message(websocketpp::connection_hdl,
+                    const rapidjson::Document& document) override {
+        if (document["channel"] == "user") {
+            std::cout << "recieved user!" << std::endl;
+            // ticker_data data(document);
+            // std::cout << document << std::endl;
+            // this->on_ticker(data);
+        }
+    }
+
+    // virtual void on_ticker(const ticker_data& data) = 0;
 };
 
 } // namespace deg
