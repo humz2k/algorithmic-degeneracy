@@ -220,16 +220,16 @@ class TickerSubscriptionHandler : public SubscriptionHandler {
         }
         std::string payload = "{\"type\":\"subscribe\", \"product_ids\":[\"" +
                               m_id +
-                              "\"], \"channel\":\"ticker\"}";
+                              "\"], \"channels\":[\"ticker\",\"heartbeat\"]}";
         std::cout << "payload : " << payload << std::endl;
         c->send(con, payload, websocketpp::frame::opcode::text);
     }
 
     void on_message(websocketpp::connection_hdl,
                     const rapidjson::Document& document) override {
-        if (document["channel"] == "ticker") {
-            //ticker_data data(document);
-            //this->on_ticker(data);
+        if (document["type"] == "ticker") {
+            ticker_data data(document);
+            this->on_ticker(data);
         }
     }
 

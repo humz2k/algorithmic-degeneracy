@@ -22,7 +22,7 @@ class Handler : public deg::TickerSubscriptionHandler {
     Handler() : deg::TickerSubscriptionHandler("BTC-USD") {}
     void on_ticker(const deg::ticker_data& data) override {
         using namespace date;
-        std::cout << "ask: " << data.best_ask << ", bid: " << data.best_bid
+        std::cout << "ask: " << std::to_string(data.best_ask) << ", bid: " << std::to_string(data.best_bid)
                   << std::endl;
         /*if ((exposure < 10) && ((data.best_ask - data.best_bid) >= spread)){
             std::cout << "placing orders" << std::endl;
@@ -82,9 +82,9 @@ int main() {
     std::cout << "last_rtt = " << trade_api.last_rtt() << std::endl;
     std::cout << "avg_rtt = " << trade_api.avg_rtt() << std::endl;*/
 
-    deg::Subscription<Handler> subscription("advanced-trade-ws.coinbase.com");
-    //deg::Subscription<UserHandler> subscription1(
-    //    "advanced-trade-ws-user.coinbase.com");
+    //deg::Subscription<Handler> subscription("ws-feed.exchange.coinbase.com");
+    deg::Subscription<UserHandler> subscription1(
+        "advanced-trade-ws-user.coinbase.com");
 
     while (true) {
         std::string command;
